@@ -27,6 +27,10 @@ class PTB_XL_Reader():
         record = wfdb.rdrecord(self.database_path + filename)
         return record
 
+    def num_records(self) -> int:
+        Y = pd.read_csv(self.database_path + 'ptbxl_database.csv', index_col='ecg_id')
+        print(Y.shape[0])
+        return Y.shape[0]
 
 class Data_Reader():
     def __init__(self, strategy: Data_Src, database_path: str):
@@ -39,5 +43,8 @@ class Data_Reader():
     
     def get_record(self, record_id: int):
         return self.strategy.get_record(record_id)
+    
+    def num_records(self) -> int:
+        return self.strategy.num_records()
 
 
