@@ -20,6 +20,19 @@ class Plotter_WFDB:
         plt.title('Baseline Wander Removal')
         plt.show()
 
+    def plot_raw_voltages_mult_leads(self, raw_voltages, colour="blue"):
+
+        num_sub_plots = raw_voltages.shape[1]
+        fig, plots = plt.subplots(num_sub_plots, sharex=True, figsize=(15, 10))
+        fig.suptitle('Raw Voltages Multiple Leads')
+
+        for lead in range(num_sub_plots):
+            plots[lead].plot(raw_voltages[:,lead], color=colour)
+        fig.tight_layout(pad=50.0)
+
+        plt.show()
+
+
 
 if __name__ == "__main__":
     reader = PTB_XL_Reader()

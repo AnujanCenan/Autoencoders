@@ -44,13 +44,16 @@ if __name__ == "__main__":
     record = data_reader.get_record(record_id=1)
     
     plotter = Plotter_WFDB()
+    plotter.plot_raw_voltages(record.p_signal[:,0])
     plotter.plot_sample(record)
     
     pre_processor = Pre_Processor()
     filtered_signal = pre_processor.apply_butterworth(record=record)
 
-    for curr_lead in range(12):
-        plotter.plot_raw_voltages(filtered_signal[:,curr_lead], colour="red")
+
+    plotter.plot_raw_voltages_mult_leads(filtered_signal, "red")
+    # for curr_lead in range(12):
+    #     plotter.plot_raw_voltages(filtered_signal[:,curr_lead], colour="red")
 
 
 
