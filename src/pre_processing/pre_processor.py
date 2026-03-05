@@ -1,7 +1,7 @@
 import wfdb
 import numpy as np
 import scipy.signal as signal
-import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
 
 from ..data_reader.data_reader import PTB_XL_Reader
 from ..plotter.plotter import Plotter
@@ -37,7 +37,7 @@ class Pre_Processor:
         )
 
 
-    def apply_notch_filter(self, record: wfdb.Record, notch_freq=50, Q=30):
+    def apply_notch_filter(self, record: wfdb.Record, notch_freq=50, Q=30) -> wfdb.Record:
         '''
         Default notch_freq and Q are taken from the aBcDe paper
         '''
@@ -61,8 +61,28 @@ class Pre_Processor:
         )
 
 
-    def min_max_normalise(self):
-        pass
+    def min_max_normalise(self, record: wfdb.Record) -> wfdb.Record:
+        
+        print(f"\t\tChecking p_sig shape: {record.p_signal.shape}")
+        data = record.p_signal
+
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        # ecg_normalized = scaler.fit_transform(ecg_data)
+
+
+        def use_scaler(data_col):
+            data_col = data_col.reshape(-1, 1)      # fit_transform expects a 2D array
+            return scaler.fit_transform(data_col).flatten() # need to flatten back to 1D array for apply_along_axis
+        
+        normalised_data = np.apply_along_axis(use_scaler, axis=0, arr=data)
+
+        return wfdb.Record(
+            p_signal=normalised_data,
+            n_sig=record.n_sig,
+            fs=record.fs,
+            units=record.units,
+            sig_name=record.sig_name
+        )
 
 if __name__ == "__main__":
 
@@ -80,12 +100,15 @@ if __name__ == "__main__":
     filtered_signal_record = pre_processor.apply_butterworth(record=record)
     
     print("\tApplying notch filter for power line interference removal (assumes notch_freq=50Hz)...")
-    filtered_signal = pre_processor.apply_notch_filter(record=filtered_signal_record)
+    filtered_signal_record = pre_processor.apply_notch_filter(record=filtered_signal_record)
+    
+    print("\tApplying min-max normalisation to give all leads equal say...")
+    filtered_signal_record = pre_processor.min_max_normalise(filtered_signal_record)
+    
+    plotter.plot_sample(filtered_signal_record)
 
-    plotter.plot_sample(filtered_signal)
 
-    # plotter.plot_raw_voltages_mult_leads(filtered_signal_record.p_signal, "red")
-    # plotter.plot_sample(filtered_signal_record)
+    plotter.plot_raw_voltages(filtered_signal_record.p_signal[:,0])
 
 
 
