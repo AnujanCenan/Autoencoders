@@ -1,14 +1,10 @@
 import wfdb
 import pandas as pd
-import numpy as np
 from abc import ABC, abstractmethod
 from dotenv import load_dotenv
 import os
 
-from enum import Enum
 
-
-    
 class Data_Reader(ABC):
     def __init__(self):
         pass
