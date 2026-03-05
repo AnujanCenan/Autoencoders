@@ -2,21 +2,19 @@
 
 import wfdb
 import matplotlib.pyplot as plt
-
-import numpy as np
-
 from ..data_reader.data_reader import PTB_XL_Reader
 
 class Plotter:
     
     def plot_sample(self, record: wfdb.Record, title="Record Plot"):
         wfdb.plot_wfdb(record=record, title=title, figsize=(15, 8))
+
     
     def plot_raw_voltages(self, raw_voltages, colour="blue"):
         plt.figure(figsize=(15, 5))
         plt.plot(raw_voltages, label='Raw Voltage Plotting', color=colour)
         plt.legend(loc='upper left')
-        plt.title('Baseline Wander Removal')
+        plt.title('Raw Voltage Signal')
         plt.show()
 
     def plot_raw_voltages_mult_leads(self, raw_voltages, colour="blue"):
