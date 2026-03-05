@@ -1,37 +1,36 @@
 #!/bin/python3
 
 import wfdb
-from dotenv import load_dotenv
-import os
+import matplotlib.pyplot as plt
+from ..data_reader.data_reader import PTB_XL_Reader
 
-from ..data_reader.data_reader import Data_Src, Data_Reader
+class Plotter:
+    
+    def plot_sample(self, record: wfdb.Record, title="Record Plot"):
+        wfdb.plot_wfdb(record=record, title=title, figsize=(15, 8))
 
-class Plotter_WFDB:
+    
+    def plot_raw_voltages(self, raw_voltages, colour="blue"):
+        plt.figure(figsize=(15, 5))
+        plt.plot(raw_voltages, label='Raw Voltage Plotting', color=colour)
+        plt.legend(loc='upper left')
+        plt.title('Raw Voltage Signal')
+        plt.show()
 
-    def initialise_data_reader(self, strategy: Data_Src, database_path: str):
-        self.data_reader = Data_Reader(strategy, database_path)
+    def plot_raw_voltages_mult_leads(self, raw_voltages, colour="blue"):
 
-    def plot_sample(self, record_id):
-        record = self.data_reader.get_record(record_id)
+        num_sub_plots = raw_voltages.shape[1]
+        fig, plots = plt.subplots(num_sub_plots, sharex=True, figsize=(15, 10))
+        fig.suptitle('Raw Voltages Multiple Leads')
 
+        for lead in range(num_sub_plots):
+            plots[lead].plot(raw_voltages[:,lead], color=colour)
+        fig.tight_layout(pad=50.0)
 
-        wfdb.plot_wfdb(record=record, title=f"Record {record_id} Plot", figsize=(15, 8))
-        return
-
-    def plot_all_samples(self):
-        num_records = self.data_reader.num_records()
-
-        for id in range(1, num_records + 1):
-            self.plot_sample(id)
-
-    def plot_directory(self, dir_path):
-        pass
-
+        plt.show()
 
 if __name__ == "__main__":
-    load_dotenv()
+    reader = PTB_XL_Reader()
+    plotter = Plotter()
 
-    plotter = Plotter_WFDB()
-    plotter.initialise_data_reader(Data_Src.PTB_XL, os.getenv("PTB_XL_DIRECTORY"))
-
-    plotter.plot_all_samples()
+    plotter.plot_sample(reader.get_record(record_id=1))
