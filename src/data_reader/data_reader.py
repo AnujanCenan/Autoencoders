@@ -1,20 +1,35 @@
 import wfdb
 import pandas as pd
 import numpy as np
-
-
+from abc import ABC, abstractmethod
+from dotenv import load_dotenv
+import os
 
 from enum import Enum
 
 
+    
+class Data_Reader(ABC):
+    def __init__(self):
+        pass
 
-class Data_Src(Enum):
-    PTB_XL = 0
+    @abstractmethod
+    def get_record(self, record_id: int):
+        pass
+    
+    @abstractmethod
+    def num_records(self) -> int:
+        pass
+    
+    @abstractmethod
+    def get_record_values(self, record: wfdb.Record | wfdb.MultiRecord):
+        pass
 
-# Each strategy should have a get_record method which returns a record
-class PTB_XL_Reader():
-    def __init__(self, database_path):
-        self.database_path = database_path
+
+class PTB_XL_Reader(Data_Reader):
+    def __init__(self):
+        load_dotenv()
+        self.database_path = os.getenv("PTB_XL_DIRECTORY")
 
 
     def get_record(self, record_id: int):
@@ -32,19 +47,6 @@ class PTB_XL_Reader():
         print(Y.shape[0])
         return Y.shape[0]
 
-class Data_Reader():
-    def __init__(self, strategy: Data_Src, database_path: str):
-        
-        if (strategy == Data_Src.PTB_XL):
-            self.strategy = PTB_XL_Reader(database_path)
-        else:
-            print("Invalid strategy given to Data_Reader class")
-    
-    
-    def get_record(self, record_id: int):
-        return self.strategy.get_record(record_id)
-    
-    def num_records(self) -> int:
-        return self.strategy.num_records()
-
-
+    def get_record_values(self, record: wfdb.Record | wfdb.MultiRecord):
+        print(record.p_signal)
+        return record.p_signal
