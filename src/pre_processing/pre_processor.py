@@ -13,7 +13,10 @@ class Pre_Processor:
 
     def apply_butterworth(self, record: wfdb.Record, cutoff_freq=0.5):
 
-        data = record.p_signal[:,0]  # 1st lead only
+        data = record.p_signal
+        print(data.shape)
+        number_of_leads = data.shape[1]
+
         fs = record.fs          # Sampling frequency
 
         nyq_freq = 0.5 * fs
@@ -22,10 +25,14 @@ class Pre_Processor:
 
         sos = signal.butter(4, normalised_cutoff, btype='high', analog=False, output='sos')
 
+        final_filtered = np.zeros_like(data)
+        for curr_lead in range(number_of_leads):
+            data_col = data[:,curr_lead]
+            filtered_signal = signal.sosfiltfilt(sos, data_col)
+            final_filtered[:,curr_lead] = filtered_signal
 
-        filtered_signal = signal.sosfiltfilt(sos, data)
-        return filtered_signal    
-        
+        return final_filtered    
+
     def apply_band_stop_filter(self):
         pass
 
@@ -37,13 +44,13 @@ if __name__ == "__main__":
     record = data_reader.get_record(record_id=1)
     
     plotter = Plotter_WFDB()
-    # plotter.plot_sample(record)
-    plotter.plot_raw_voltages(record.p_signal[:,0])
+    plotter.plot_sample(record)
     
     pre_processor = Pre_Processor()
-    filtered_sig = pre_processor.apply_butterworth(record=record)
+    filtered_signal = pre_processor.apply_butterworth(record=record)
 
-    plotter.plot_raw_voltages(filtered_sig, colour="red")
+    for curr_lead in range(12):
+        plotter.plot_raw_voltages(filtered_signal[:,curr_lead], colour="red")
 
 
 
