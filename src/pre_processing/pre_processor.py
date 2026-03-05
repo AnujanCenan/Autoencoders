@@ -24,19 +24,8 @@ class Pre_Processor:
 
 
         filtered_signal = signal.sosfiltfilt(sos, data)
-        print(len(filtered_signal))
-        print(filtered_signal)
-
-        return filtered_signal
-
-        plt.figure(figsize=(10, 5))
-        # plt.plot(data[:2000], label='Original Signal')
-        plt.plot(filtered_signal[:2000], label='Filtered Signal', color='red')
-        plt.legend()
-        plt.title('Baseline Wander Removal')
-        plt.show()
-
-    
+        return filtered_signal    
+        
     def apply_band_stop_filter(self):
         pass
 
@@ -48,13 +37,13 @@ if __name__ == "__main__":
     record = data_reader.get_record(record_id=1)
     
     plotter = Plotter_WFDB()
-    plotter.plot_sample(record)
-    # plotter.plot_p_signal(record.p_signal[:,0])
+    # plotter.plot_sample(record)
+    plotter.plot_raw_voltages(record.p_signal[:,0])
     
     pre_processor = Pre_Processor()
     filtered_sig = pre_processor.apply_butterworth(record=record)
 
-    plotter.plot_p_signal(filtered_sig, colour="red")
+    plotter.plot_raw_voltages(filtered_sig, colour="red")
 
 
 
