@@ -2,6 +2,7 @@ import wfdb
 import numpy as np
 import scipy.signal as signal
 from sklearn.preprocessing import MinMaxScaler
+from scipy.interpolate import CubicSpline
 
 from ..data_reader.data_reader import PTB_XL_Reader
 from ..plotter.plotter import Plotter
@@ -83,6 +84,18 @@ class Pre_Processor:
             units=record.units,
             sig_name=record.sig_name
         )
+
+    def resample_ecg_cubic(signal, original_fs, target_fs=500):
+        # Calculate duration and time arrays
+        duration = len(signal) / original_fs
+        time_old = np.linspace(0, duration, len(signal))
+        time_new = np.linspace(0, duration, int(duration * target_fs))
+        
+        # Fit the Cubic Spline
+        cs = CubicSpline(time_old, signal)
+        
+        # Return the smoothed, resampled signal
+        return cs(time_new)
 
 if __name__ == "__main__":
 
