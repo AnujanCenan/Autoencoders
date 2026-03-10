@@ -3,6 +3,9 @@ import numpy as np
 import scipy.signal as signal
 from sklearn.preprocessing import MinMaxScaler
 
+from scipy.interpolate import CubicSpline
+
+
 from ..data_reader.data_reader import PTB_XL_Reader
 from ..plotter.plotter import Plotter
 
@@ -20,8 +23,8 @@ class Pre_Processor:
         nyq_freq = 0.5 * fs
         normalised_cutoff = cutoff_freq / nyq_freq
 
-        order = 4
-        sos = signal.butter(order, normalised_cutoff, btype='high', analog=False, output='sos')
+        ORDER = 4
+        sos = signal.butter(ORDER, normalised_cutoff, btype='high', analog=False, output='sos')
 
         def apply_sos_on_col(col):
             return signal.sosfiltfilt(sos, col)
@@ -83,33 +86,64 @@ class Pre_Processor:
             units=record.units,
             sig_name=record.sig_name
         )
+    
+    def resample(self, record: wfdb.Record, target_fs=500) -> wfdb.Record:
+        fs = record.fs
+        if target_fs == fs:
+            return record
+
+        num_recordings = record.p_signal.shape[0]
+        num_leads = record.p_signal.shape[1]
+
+        duration = num_recordings / fs
+        time_old = np.linspace(0, duration, num_recordings)
+
+
+        new_samples = int(duration * target_fs)
+        time_new = np.linspace(0, duration, new_samples)
+
+        # 3. Apply Cubic Spline Resampling
+        resampled_ecg_data = np.zeros((new_samples, num_leads))
+
+        for i in range(num_leads):
+            cs = CubicSpline(time_old, record.p_signal[:, i], bc_type='natural')
+            resampled_ecg_data[:, i] = cs(time_new)
+
+        return wfdb.Record(
+            p_signal=resampled_ecg_data,
+            n_sig=num_leads,
+            fs=target_fs,
+            units=record.units,
+            sig_name=record.sig_name
+        )
+    
+
+    def clean(self, record: wfdb.Record) -> wfdb.Record:
+        record = self.apply_butterworth(record)
+        record = self.apply_notch_filter(record)
+        record = self.min_max_normalise(record)
+
+        return record
+
 
 if __name__ == "__main__":
 
     print(f"Running Preprocessor Program...")
     data_reader = PTB_XL_Reader()
-    record = data_reader.get_record(record_id=1)
+    record = data_reader.get_record(row=3, freq='low')
+    print(record.p_signal.shape)
+
     
     plotter = Plotter()
-    plotter.plot_raw_voltages(record.p_signal[:,0])
     plotter.plot_sample(record)
     
     pre_processor = Pre_Processor()
     
-    print("\tApplying butterworth filter for baseline wander removal...")
-    filtered_signal_record = pre_processor.apply_butterworth(record=record)
-    
-    print("\tApplying notch filter for power line interference removal (assumes notch_freq=50Hz)...")
-    filtered_signal_record = pre_processor.apply_notch_filter(record=filtered_signal_record)
-    
-    print("\tApplying min-max normalisation to give all leads equal say...")
-    filtered_signal_record = pre_processor.min_max_normalise(filtered_signal_record)
-    
-    plotter.plot_sample(filtered_signal_record)
+    print("Cleaning record")
+    record = pre_processor.clean(record)
 
+    record = pre_processor.resample(record)
 
-    plotter.plot_raw_voltages(filtered_signal_record.p_signal[:,0])
+    print(record.p_signal.shape)
 
-
-
-    
+    plotter.plot_sample(record)
