@@ -35,12 +35,29 @@ class PTB_XL_Reader(Data_Reader):
         return pd.read_csv(self.database_path + 'ptbxl_database.csv', skiprows=num_skipped_rows, nrows=1, header=None)
 
 
-    def get_record(self, row: int):
+    def get_record(self, row: int, **kwargs):
+        ''' 
+        kwargs Parameters: 
+            - freq: can be low (fs = 100 Hz) or high (fs = 500 Hz)
+                - options: ['low', 'high']
+                - default is high
+        '''
         Y = self.get_csv_row(row)
 
         HR_FILENAME_COLUMN = 27
+        LR_FILE_NAME_COLUMN = 26
+        freq = kwargs.get('freq', 'high')
+
+
         print(Y)
-        filename = Y.loc[0, HR_FILENAME_COLUMN]
+        filename = ''
+        if freq == 'high':
+            filename = Y.loc[0, HR_FILENAME_COLUMN]
+        elif freq == 'low':
+            filename = Y.loc[0, LR_FILE_NAME_COLUMN]
+        else:
+            raise ValueError("freq can take value 'low' or 'high'")
+
 
         record = wfdb.rdrecord(self.database_path + filename)
         return record

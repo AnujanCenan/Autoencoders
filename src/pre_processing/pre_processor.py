@@ -3,6 +3,9 @@ import numpy as np
 import scipy.signal as signal
 from sklearn.preprocessing import MinMaxScaler
 
+from scipy.interpolate import CubicSpline
+
+
 from ..data_reader.data_reader import PTB_XL_Reader
 from ..plotter.plotter import Plotter
 
@@ -83,6 +86,37 @@ class Pre_Processor:
             units=record.units,
             sig_name=record.sig_name
         )
+    
+    def resample(self, record: wfdb.Record, target_fs=500) -> wfdb.Record:
+        fs = record.fs
+        if target_fs == fs:
+            return record
+
+        num_recordings = record.p_signal.shape[0]
+        num_leads = record.p_signal.shape[1]
+
+        duration = num_recordings / fs
+        time_old = np.linspace(0, duration, num_recordings)
+
+
+        new_samples = int(duration * target_fs)
+        time_new = np.linspace(0, duration, new_samples)
+
+        # 3. Apply Cubic Spline Resampling
+        resampled_ecg_data = np.zeros((new_samples, num_leads))
+
+        for i in range(num_leads):
+            cs = CubicSpline(time_old, record.p_signal[:, i], bc_type='natural')
+            resampled_ecg_data[:, i] = cs(time_new)
+
+        return wfdb.Record(
+            p_signal=resampled_ecg_data,
+            n_sig=num_leads,
+            fs=target_fs,
+            units=record.units,
+            sig_name=record.sig_name
+        )
+    
 
     def clean(self, record: wfdb.Record) -> wfdb.Record:
         record = self.apply_butterworth(record)
@@ -96,7 +130,9 @@ if __name__ == "__main__":
 
     print(f"Running Preprocessor Program...")
     data_reader = PTB_XL_Reader()
-    record = data_reader.get_record(row=3)
+    record = data_reader.get_record(row=3, freq='low')
+    print(record.p_signal.shape)
+
     
     plotter = Plotter()
     plotter.plot_sample(record)
@@ -105,5 +141,9 @@ if __name__ == "__main__":
     
     print("Cleaning record")
     record = pre_processor.clean(record)
+
+    record = pre_processor.resample(record)
+
+    print(record.p_signal.shape)
 
     plotter.plot_sample(record)
