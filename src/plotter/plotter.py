@@ -2,7 +2,7 @@
 
 import wfdb
 import matplotlib.pyplot as plt
-from ..data_reader.data_reader import PTB_XL_Reader
+from data_reader import PTB_XL_Reader
 
 class Plotter:
     

@@ -3,6 +3,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from dotenv import load_dotenv
 import os
+import numpy as np
 
 
 class Data_Reader(ABC):
@@ -12,20 +13,13 @@ class Data_Reader(ABC):
     @abstractmethod
     def get_record(self, record_id: int):
         pass
-    
-    @abstractmethod
-    def num_records(self) -> int:
-        pass
-    
-    @abstractmethod
-    def get_record_values(self, record: wfdb.Record | wfdb.MultiRecord):
-        pass
 
 
 class PTB_XL_Reader(Data_Reader):
     def __init__(self):
         load_dotenv()
         self.database_path = os.getenv("PTB_XL_DIRECTORY")
+        self.num_records = None
 
     def get_csv(self):
         return pd.read_csv(self.database_path + 'ptbxl_database.csv', index_col='ecg_id')
@@ -43,13 +37,11 @@ class PTB_XL_Reader(Data_Reader):
                 - default is high
         '''
         Y = self.get_csv_row(row)
-
+        print(Y)
         HR_FILENAME_COLUMN = 27
         LR_FILE_NAME_COLUMN = 26
         freq = kwargs.get('freq', 'high')
 
-
-        print(Y)
         filename = ''
         if freq == 'high':
             filename = Y.loc[0, HR_FILENAME_COLUMN]
@@ -60,14 +52,31 @@ class PTB_XL_Reader(Data_Reader):
 
 
         record = wfdb.rdrecord(self.database_path + filename)
-        return record
+        return record.p_signal, record.fs
 
-    def num_records(self) -> int:
-        Y = pd.read_csv(self.database_path + 'ptbxl_database.csv', index_col='ecg_id')
-        return Y.shape[0]
+    def get_num_records(self) -> int:
+        if self.num_records is None:
+            Y = pd.read_csv(self.database_path + 'ptbxl_database.csv', index_col='ecg_id')
+            self.num_records = Y.shape[0]
 
-    def get_record_values(self, record: wfdb.Record | wfdb.MultiRecord):
-        return record.p_signal
+        return self.num_records
+    
+    def get_all_raw_voltages(self, **kwargs):
+        data, sampling_freq = self.get_record(1)
+
+        num_recordings, num_leads = data.shape
+        X = np.zeros((self.num_records, num_recordings, num_leads), dtype=np.float32)
+
+        for i in range(1, self.num_records):
+            data, sampling_freq = self.get_record(i)
+            if data.shape[0] >= num_recordings:
+                X[i] = data[:num_recordings, :]
+            else:
+                # Pad with zeros if the signal is unexpectedly short
+                X[i, :data.shape[0], :] = data
+        
+        return X, sampling_freq
+
 
 if __name__ == "__main__":
     reader = PTB_XL_Reader()
